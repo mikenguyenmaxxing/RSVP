@@ -101,6 +101,16 @@
   @keyframes pulse{0%{transform:scale(1);}50%{transform:scale(.94);}100%{transform:scale(1);}}
   .stamped{animation:pulse .3s ease;}
 
+  .submit-error{
+    margin-top:12px;
+    font-size:13px;
+    color:#a02c3e;
+    background:rgba(160,44,62,.08);
+    border-radius:8px;
+    padding:10px 12px;
+    text-align:center;
+  }
+
   .step{display:none;}
   .step.active{display:block;animation:fadeIn .3s ease;}
   @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
@@ -165,13 +175,24 @@
       </div>
     </div>
 
+    <!-- STEP 1b: Others in party (only shown if attending + other party members exist) -->
+    <div class="step" data-step="1b">
+      <h1 id="othersQuestion">Will they also be joining?</h1>
+      <p class="sub">Tap anyone else from your party who'll be attending — leave everyone unselected if it's just you.</p>
+      <div class="options" id="opts-others"></div>
+      <div class="nav">
+        <button class="btn-back" id="back1b">Back</button>
+        <button class="btn-next" id="next1b">Continue</button>
+      </div>
+    </div>
+
     <!-- STEP 2: Welcome drinks -->
     <div class="step" data-step="2">
       <h1>Thank you for making the journey out! ✨</h1>
-      <p class="sub">We're grabbing drinks at Ember, the bar at the Landmark Resort Friday the 11th from 8PM-10PM. Will you be there? 🥂 No pressure!</p>
+      <p class="sub">We'll be hanging out at the Landmark Resort restaurant bar, Ember, Friday the 11th for a bit. Swing by if you're up for it 🥂 No pressure!</p>
       <div class="options" id="opts-drinks">
         <button class="opt" data-value="I need Manny and Michael time">I need Manny and Michael time</button>
-        <button class="opt" data-value="I need my rest!!!">I need my rest!!!</button>
+        <button class="opt" data-value="Sounds good!!!">Sounds good!!!</button>
       </div>
       <div class="nav">
         <button class="btn-back" id="back2">Back</button>
@@ -181,7 +202,7 @@
 
     <!-- STEP 3: Rehearsal dinner (only shown for matched guests) -->
     <div class="step" data-step="3">
-      <h1>We'll be doing a walkthrough at Woodwalk Gallery at 5PM Friday the 11. Will you join us for dinner?</h1>
+      <h1>Will you join our rehearsal dinner after our walkthrough Friday?</h1>
       <div class="options" id="opts-rehearsal">
         <button class="opt" data-value="Yes">Yes</button>
         <button class="opt" data-value="Have other dinner plans!">Have other dinner plans!</button>
@@ -209,7 +230,7 @@
 
     <!-- STEP 4b: Address (conditional) -->
     <div class="step" data-step="4b">
-      <h1>Please send us the address so we can chauffeur you around!</h1>
+      <h1>Please send us the address so we can drive you around!</h1>
       <div class="field">
         <input type="text" id="address" placeholder="Address">
       </div>
@@ -298,9 +319,13 @@
     progressEl.appendChild(d);
   }
   const dots = Array.from(progressEl.children);
-  const dotIndexForStep = {0:0,1:1,2:2,3:3,'4':4,'4b':4,5:5,'5b':5,6:6,'6d':6,7:6};
+  const dotIndexForStep = {0:0,1:1,'1b':1,2:2,3:3,'4':4,'4b':4,5:5,'5b':5,6:6,'6d':6,7:6};
 
-  const answers = { rehearsalInvite: false, partyMembers: [] };
+  const answers = { rehearsalInvite: false, partyMembers: [], othersJoining: [] };
+
+  function normalizeNameClient(s){
+    return String(s||'').replace(/\s+/g,' ').trim().toLowerCase();
+  }
 
   function escapeHtml(str){
     const div = document.createElement('div');
@@ -342,52 +367,130 @@
     });
   }
 
-  // Step 0 — name lookup
+  // Step 0 — name lookup. Gated: only a CONFIRMED match (exact or fuzzy)
+  // may continue. A backend that's unreachable after retries fails OPEN
+  // (lets them through) rather than locking everyone out during an outage
+  // — only a definitive "not on the list" response blocks progress.
+  async function lookupName(name){
+    const res = await fetch(`${API_URL}?name=${encodeURIComponent(name)}`);
+    if (!res.ok) throw new Error('Server returned ' + res.status);
+    return res.json();
+  }
+
+  function showNameError(){
+    clearNameError();
+    const errEl = document.createElement('p');
+    errEl.className = 'submit-error';
+    errEl.id = 'nameError';
+    errEl.textContent = "We couldn't find that name on our guest list. Please check the spelling and try again — or reach out to us directly if you think this is a mistake.";
+    document.getElementById('next0').closest('.nav').insertAdjacentElement('afterend', errEl);
+  }
+  function clearNameError(){
+    const el = document.getElementById('nameError');
+    if (el) el.remove();
+  }
+
   document.getElementById('next0').addEventListener('click', async ()=>{
     answers.name = document.getElementById('fname').value.trim();
     answers.email = document.getElementById('femail').value.trim();
+    if (!answers.name) return;
 
+    clearNameError();
     const btn = document.getElementById('next0');
     const originalText = btn.textContent;
     btn.disabled = true; btn.textContent = 'One moment...';
 
-    try {
-      if (API_URL && !API_URL.includes('PASTE_')) {
-        const res = await fetch(`${API_URL}?name=${encodeURIComponent(answers.name)}`);
-        const data = await res.json();
-        answers.rehearsalInvite = !!data.rehearsalInvite;
-        answers.partyMembers = (data.partyMembers && data.partyMembers.length) ? data.partyMembers : [answers.name];
-      } else {
-        answers.partyMembers = [answers.name];
-      }
-    } catch (err) {
-      // If the lookup fails, default to not showing the rehearsal question
-      // and just showing the guest's own typed name.
-      answers.rehearsalInvite = false;
+    const proceedUnverified = () => {
       answers.partyMembers = [answers.name];
+      answers.matchedName = answers.name;
+      btn.disabled = false; btn.textContent = originalText;
+      showStep(1);
+    };
+
+    if (!API_URL || API_URL.includes('PASTE_')) {
+      proceedUnverified(); // no backend configured — can't verify, so don't block
+      return;
     }
+
+    let data = null;
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try { data = await lookupName(answers.name); break; }
+      catch (err) {
+        if (attempt < maxAttempts) await new Promise(r => setTimeout(r, 600 * attempt));
+      }
+    }
+
+    btn.disabled = false; btn.textContent = originalText;
+
+    if (data === null) { proceedUnverified(); return; } // couldn't reach backend — fail open
+
+    if (!data.found) {
+      showNameError();
+      return; // blocked: confirmed no match
+    }
+
+    answers.rehearsalInvite = !!data.rehearsalInvite;
+    answers.partyMembers = (data.partyMembers && data.partyMembers.length) ? data.partyMembers : [answers.name];
+    answers.matchedName = data.matchedName || answers.name;
 
     partyBannerEl.innerHTML = 'RSVPing for: <strong>' + formatNameList(answers.partyMembers.map(escapeHtml)) + '</strong>';
     partyBannerEl.dataset.ready = '1';
 
-    btn.disabled = false; btn.textContent = originalText;
     showStep(1);
   });
 
   // Step 1 — attendance
   selectable('opts-attend', 'attending', 'next1');
   document.getElementById('back1').addEventListener('click', ()=>showStep(0));
+
+  function othersInParty(){
+    return answers.partyMembers.filter(n => normalizeNameClient(n) !== normalizeNameClient(answers.matchedName || answers.name));
+  }
+
+  function setupOthersStep(){
+    const others = othersInParty();
+    document.getElementById('othersQuestion').textContent = `Will ${formatNameList(others)} also be joining?`;
+    const container = document.getElementById('opts-others');
+    container.innerHTML = '';
+    answers.othersJoining = [];
+    others.forEach(personName => {
+      const btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.type = 'button';
+      btn.textContent = personName;
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('selected');
+        const idx = answers.othersJoining.indexOf(personName);
+        if (btn.classList.contains('selected') && idx === -1) answers.othersJoining.push(personName);
+        if (!btn.classList.contains('selected') && idx !== -1) answers.othersJoining.splice(idx, 1);
+      });
+      container.appendChild(btn);
+    });
+  }
+
   document.getElementById('next1').addEventListener('click', ()=>{
     if (answers.attending === "I'll be there in spirit") {
       showStep('6d');
+      return;
+    }
+    if (othersInParty().length > 0) {
+      setupOthersStep();
+      showStep('1b');
     } else {
       showStep(2);
     }
   });
 
+  // Step 1b — which other party members are also joining (multi-select, optional)
+  document.getElementById('back1b').addEventListener('click', ()=>showStep(1));
+  document.getElementById('next1b').addEventListener('click', ()=>showStep(2));
+
   // Step 2 — drinks
   selectable('opts-drinks', 'drinks', 'next2');
-  document.getElementById('back2').addEventListener('click', ()=>showStep(1));
+  document.getElementById('back2').addEventListener('click', ()=>{
+    showStep(othersInParty().length > 0 ? '1b' : 1);
+  });
   document.getElementById('next2').addEventListener('click', ()=>{
     showStep(answers.rehearsalInvite ? 3 : 4);
   });
@@ -433,31 +536,70 @@
   });
   document.getElementById('submitBtn').addEventListener('click', function(){
     answers.story = document.getElementById('story').value.trim();
-    this.classList.add('stamped');
     submitRSVP(this);
   });
 
   // Step 6d — decline path, quick submit
   document.getElementById('back6d').addEventListener('click', ()=>showStep(1));
   document.getElementById('submitDeclineBtn').addEventListener('click', function(){
-    this.classList.add('stamped');
     submitRSVP(this);
   });
 
+  async function attemptSubmit(){
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
+      body: JSON.stringify(answers)
+    });
+    if (!res.ok) throw new Error('Server returned ' + res.status);
+    const data = await res.json();
+    if (data.status !== 'ok') throw new Error(data.message || 'Submission was not confirmed');
+  }
+
+  function clearSubmitError(btn){
+    const step = btn.closest('.step');
+    const errEl = step && step.querySelector('.submit-error');
+    if (errEl) errEl.remove();
+  }
+
+  function showSubmitError(btn){
+    clearSubmitError(btn);
+    const errEl = document.createElement('p');
+    errEl.className = 'submit-error';
+    errEl.textContent = "Something went wrong sending your RSVP. Please try again — your answers are still here.";
+    btn.closest('.nav').insertAdjacentElement('afterend', errEl);
+  }
+
   async function submitRSVP(btn){
+    clearSubmitError(btn);
     btn.disabled = true;
-    try {
-      if (API_URL && !API_URL.includes('PASTE_')) {
-        await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
-          body: JSON.stringify(answers)
-        });
-      }
-    } catch (err) {
-      // Submission still proceeds to confirmation; consider logging err for debugging
+    const originalText = btn.textContent;
+    btn.textContent = 'Sending...';
+
+    // No backend configured (e.g. local testing) — skip straight through.
+    if (!API_URL || API_URL.includes('PASTE_')) {
+      btn.classList.add('stamped');
+      setTimeout(()=>showStep(7), 450);
+      return;
     }
-    setTimeout(()=>showStep(7), 450);
+
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await attemptSubmit();
+        btn.classList.add('stamped');
+        setTimeout(()=>showStep(7), 450);
+        return;
+      } catch (err) {
+        if (attempt === maxAttempts) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          showSubmitError(btn);
+          return;
+        }
+        await new Promise(r => setTimeout(r, 700 * attempt)); // brief backoff, then retry
+      }
+    }
   }
 
   showStep(0);
