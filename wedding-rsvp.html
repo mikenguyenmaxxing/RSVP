@@ -98,6 +98,7 @@
   .btn-next:hover{background:var(--accent-hover);}
   .btn-next:disabled{opacity:.4;cursor:not-allowed;}
   .btn-next:active:not(:disabled){transform:scale(.97);}
+  .btn-link{display:inline-block;text-decoration:none;}
   @keyframes pulse{0%{transform:scale(1);}50%{transform:scale(.94);}100%{transform:scale(1);}}
   .stamped{animation:pulse .3s ease;}
 
@@ -147,14 +148,14 @@
     <!-- STEP 0: Names -->
     <div class="step active" data-step="0">
       <h1>Let's start with your name</h1>
-      <p class="sub">We'll use this to look you up on our guest list.</p>
+      <p class="sub">We'll use this to look you up on our guest list, and send your confirmation.</p>
       <div class="field">
         <label for="fname">Your full name</label>
         <input type="text" id="fname" placeholder="First and last name">
       </div>
       <div class="field">
-        <label for="femail">Email (optional)</label>
-        <input type="email" id="femail" placeholder="you@email.com">
+        <label for="femail">Email</label>
+        <input type="email" id="femail" placeholder="you@email.com" required>
       </div>
       <div class="nav">
         <button class="btn-back" disabled>Back</button>
@@ -188,11 +189,11 @@
 
     <!-- STEP 2: Welcome drinks -->
     <div class="step" data-step="2">
-      <h1>Thank you for making the journey out!✨</h1>
-      <p class="sub">We're grabbing drinks at Ember at the Landmark Resort Friday the 11th from 8PM-10PM. Do you want to come?🥂 No pressure!</p>
+      <h1>Thank you for making the journey out! ✨</h1>
+      <p class="sub">We're grabbing drinks at Ember at the Landmark Resort Friday the 11th from 8PM-10PM. Do you want to come? 🥂 No pressure!</p>
       <div class="options" id="opts-drinks">
         <button class="opt" data-value="I need Manny and Michael time">I need Manny and Michael time</button>
-        <button class="opt" data-value="Sounds good!!!">I need my rest!!!</button>
+        <button class="opt" data-value="I need my rest!!!">Sounds good!!!</button>
       </div>
       <div class="nav">
         <button class="btn-back" id="back2">Back</button>
@@ -204,7 +205,7 @@
     <div class="step" data-step="3">
       <h1>Will you join our rehearsal dinner after our walkthrough Friday?</h1>
       <div class="options" id="opts-rehearsal">
-        <button class="opt" data-value="Of course">Yes</button>
+        <button class="opt" data-value="Yes">Of course!</button>
         <button class="opt" data-value="Have other dinner plans!">Have other dinner plans!</button>
       </div>
       <div class="nav">
@@ -216,7 +217,7 @@
     <!-- STEP 4: Hotel -->
     <div class="step" data-step="4">
       <h1>Are you staying at the Landmark Resort?</h1>
-      <p class="sub">We have a shuttle service running from 2PM–5PM and 11:30PM–2:30AM. <br> <br> We've secured a room block for our wedding at the Landmark Resort. Rooms are available at a discounted rate on a first-come, first-served basis. <br><br> On July 29th, unbooked rooms will no longer be held and will be released to the public.</p>
+      <p class="sub">We have a shuttle service running from 2PM–5PM and 11:30PM–2:30AM. <br><br>We've secured a room block for our wedding at the Landmark Resort. Rooms are available at a discounted rate on a first-come, first-served basis. <br><br>On July 29th, unbooked rooms will no longer be held and will be released to the public.</p>
       <div class="options" id="opts-hotel">
         <button class="opt" data-value="I'm staying at the Landmark Resort">I'm staying at the Landmark Resort</button>
         <button class="opt" data-value="Staying at a rental/other hotel">Staying at a rental/other hotel</button>
@@ -245,7 +246,7 @@
       <h1>Any dietary restrictions?</h1>
       <div class="options" id="opts-dietary">
         <button class="opt" data-value="My body is ready for anything">My body is ready for anything</button>
-        <button class="opt" data-value="Sensitive tummy">I have a sensitive tummy</button>
+        <button class="opt" data-value="Sensitive tummy">Sensitive tummy</button>
       </div>
       <div class="nav">
         <button class="btn-back" id="back5">Back</button>
@@ -255,7 +256,7 @@
 
     <!-- STEP 5b: Dietary detail (conditional) -->
     <div class="step" data-step="5b">
-      <h1>Tell us about your tummy issues</h1>
+      <h1>What's wrong with you</h1>
       <div class="field">
         <input type="text" id="dietaryDetail" placeholder="Tell us more">
       </div>
@@ -298,6 +299,9 @@
       </div>
       <p class="final-title">Thanks for your RSVP!</p>
       <p class="final-sub">We've got your response and can't wait to celebrate with you.</p>
+      <div style="text-align:center;margin-top:26px;">
+        <a href="https://mannyandmichael.com" class="btn-next btn-link">Back to mannyandmichael.com</a>
+      </div>
     </div>
 
   </div>
@@ -367,35 +371,50 @@
     });
   }
 
-  // Step 0 — name lookup. Gated: only a CONFIRMED match (exact or fuzzy)
-  // may continue. A backend that's unreachable after retries fails OPEN
-  // (lets them through) rather than locking everyone out during an outage
-  // — only a definitive "not on the list" response blocks progress.
+  // Step 0 — name + email. Two gates: a valid-looking email is required
+  // (so the confirmation email has somewhere to go), and a CONFIRMED guest
+  // list match (exact or fuzzy) is required to proceed. A backend that's
+  // unreachable after retries fails OPEN on the match check (lets them
+  // through) rather than locking everyone out during an outage — only a
+  // definitive "not on the list" response blocks progress. Email format
+  // is checked client-side regardless of backend availability.
   async function lookupName(name){
     const res = await fetch(`${API_URL}?name=${encodeURIComponent(name)}`);
     if (!res.ok) throw new Error('Server returned ' + res.status);
     return res.json();
   }
 
-  function showNameError(){
-    clearNameError();
+  function isValidEmail(email){
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function showStep0Error(message){
+    clearStep0Error();
     const errEl = document.createElement('p');
     errEl.className = 'submit-error';
-    errEl.id = 'nameError';
-    errEl.textContent = "We couldn't find that name on our guest list. Please check the spelling and try again — or reach out to us directly if you think this is a mistake.";
+    errEl.id = 'step0Error';
+    errEl.textContent = message;
     document.getElementById('next0').closest('.nav').insertAdjacentElement('afterend', errEl);
   }
-  function clearNameError(){
-    const el = document.getElementById('nameError');
+  function clearStep0Error(){
+    const el = document.getElementById('step0Error');
     if (el) el.remove();
   }
 
   document.getElementById('next0').addEventListener('click', async ()=>{
     answers.name = document.getElementById('fname').value.trim();
     answers.email = document.getElementById('femail').value.trim();
-    if (!answers.name) return;
+    clearStep0Error();
 
-    clearNameError();
+    if (!answers.name) {
+      showStep0Error('Please enter your name.');
+      return;
+    }
+    if (!isValidEmail(answers.email)) {
+      showStep0Error("Please enter a valid email address so we can send your confirmation.");
+      return;
+    }
+
     const btn = document.getElementById('next0');
     const originalText = btn.textContent;
     btn.disabled = true; btn.textContent = 'One moment...';
@@ -426,7 +445,7 @@
     if (data === null) { proceedUnverified(); return; } // couldn't reach backend — fail open
 
     if (!data.found) {
-      showNameError();
+      showStep0Error("We couldn't find that name on our guest list. Please check the spelling and try again — or reach out to us directly if you think this is a mistake.");
       return; // blocked: confirmed no match
     }
 
