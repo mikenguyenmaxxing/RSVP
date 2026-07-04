@@ -119,6 +119,23 @@
   .final-title{font-family:'EB Garamond',serif;font-size:24px;font-weight:500;text-align:center;margin:14px 0 8px;color:var(--ink);}
   .final-sub{text-align:center;font-family:'EB Garamond',serif;font-size:16px;color:var(--ink-soft);line-height:1.55;margin-bottom:0;}
 
+  .itinerary{margin-top:28px;padding-top:22px;border-top:1px solid var(--border);}
+  .itinerary-title{
+    font-family:'EB Garamond',serif;font-size:18px;font-weight:600;color:var(--ink);
+    text-align:center;margin:0 0 16px;
+  }
+  .itinerary-day{margin-bottom:14px;}
+  .itinerary-day:last-child{margin-bottom:0;}
+  .itinerary-day-label{
+    font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;
+    color:var(--accent);margin:0 0 6px;
+  }
+  .itinerary-item{
+    display:flex;gap:12px;padding:6px 0;font-size:14px;color:var(--ink);
+  }
+  .itinerary-time{flex:0 0 76px;color:var(--ink-soft);font-weight:600;}
+  .itinerary-event em{font-style:italic;color:var(--ink-soft);}
+
   .party-banner{
     display:none;
     font-family:'Karla',sans-serif;
@@ -190,10 +207,10 @@
     <!-- STEP 2: Welcome drinks -->
     <div class="step" data-step="2">
       <h1>Thank you for making the journey out! ✨</h1>
-      <p class="sub">We're grabbing drinks at Ember at the Landmark Resort Friday the 11th from 8PM-10PM. Do you want to come? 🥂 No pressure!</p>
+      <p class="sub">We'll be hanging out at the Landmark Resort restaurant bar, Ember, Friday the 11th for a bit. Swing by if you're up for it 🥂 No pressure!</p>
       <div class="options" id="opts-drinks">
         <button class="opt" data-value="I need Manny and Michael time">I need Manny and Michael time</button>
-        <button class="opt" data-value="I need my rest!!!">I need my rest!!!</button>
+        <button class="opt" data-value="Sounds good!!!">Sounds good!!!</button>
       </div>
       <div class="nav">
         <button class="btn-back" id="back2">Back</button>
@@ -205,7 +222,7 @@
     <div class="step" data-step="3">
       <h1>Will you join our rehearsal dinner after our walkthrough Friday?</h1>
       <div class="options" id="opts-rehearsal">
-        <button class="opt" data-value="Yes">Of course!</button>
+        <button class="opt" data-value="Yes">Yes</button>
         <button class="opt" data-value="Have other dinner plans!">Have other dinner plans!</button>
       </div>
       <div class="nav">
@@ -217,7 +234,7 @@
     <!-- STEP 4: Hotel -->
     <div class="step" data-step="4">
       <h1>Are you staying at the Landmark Resort?</h1>
-      <p class="sub">We have a shuttle service running from 2PM–5PM and 11:30PM–2:30AM. <br><br>We've secured a room block for our wedding at the Landmark Resort. Rooms are available at a discounted rate on a first-come, first-served basis. <br><br>On July 29th, unbooked rooms will no longer be held and will be released to the public.</p>
+      <p class="sub">We have a shuttle service running from 2PM–5PM and 11:30PM–2:30AM. We've secured a room block for our wedding at the Landmark Resort. Rooms are available at a discounted rate on a first-come, first-served basis. On July 29th, unbooked rooms will no longer be held and will be released to the public.</p>
       <div class="options" id="opts-hotel">
         <button class="opt" data-value="I'm staying at the Landmark Resort">I'm staying at the Landmark Resort</button>
         <button class="opt" data-value="Staying at a rental/other hotel">Staying at a rental/other hotel</button>
@@ -231,7 +248,7 @@
 
     <!-- STEP 4b: Address (conditional) -->
     <div class="step" data-step="4b">
-      <h1>Please send us the address so we can chauffeur you around!</h1>
+      <h1>Please send us the address so we can drive you around!</h1>
       <div class="field">
         <input type="text" id="address" placeholder="Address">
       </div>
@@ -299,6 +316,27 @@
       </div>
       <p class="final-title">Thanks for your RSVP!</p>
       <p class="final-sub">We've got your response and can't wait to celebrate with you.</p>
+
+      <div class="itinerary" id="itineraryBlock">
+        <p class="itinerary-title">Weekend Itinerary</p>
+
+        <div class="itinerary-day">
+          <p class="itinerary-day-label">Friday, September 11</p>
+          <div class="itinerary-item itinerary-rehearsal-only"><span class="itinerary-time">5:00 PM</span><span class="itinerary-event">Walkthrough at Woodwalk Gallery</span></div>
+          <div class="itinerary-item itinerary-rehearsal-only"><span class="itinerary-time">6:00 PM</span><span class="itinerary-event">Rehearsal Dinner <em>(wedding party &amp; immediate family)</em></span></div>
+          <div class="itinerary-item"><span class="itinerary-time">8:00 PM</span><span class="itinerary-event">Welcome Drinks at Ember <em>(all guests welcome, cash bar)</em></span></div>
+        </div>
+
+        <div class="itinerary-day">
+          <p class="itinerary-day-label">Saturday, September 12</p>
+          <div class="itinerary-item"><span class="itinerary-time">4:30 PM</span><span class="itinerary-event">Ceremony</span></div>
+          <div class="itinerary-item"><span class="itinerary-time">5:00 PM</span><span class="itinerary-event">Cocktail Hour</span></div>
+          <div class="itinerary-item"><span class="itinerary-time">6:30 PM</span><span class="itinerary-event">Dinner</span></div>
+          <div class="itinerary-item"><span class="itinerary-time">8:00 PM</span><span class="itinerary-event">Dancing</span></div>
+          <div class="itinerary-item"><span class="itinerary-time">TBD</span><span class="itinerary-event">After Party</span></div>
+        </div>
+      </div>
+
       <div style="text-align:center;margin-top:26px;">
         <a href="https://mannyandmichael.com" class="btn-next btn-link">Back to mannyandmichael.com</a>
       </div>
@@ -353,6 +391,11 @@
       progressEl.style.display='none';
       stepLabelEl.style.display='none';
       partyBannerEl.style.display='none';
+      const isAttending = answers.attending === "Wouldn't miss it!";
+      document.getElementById('itineraryBlock').style.display = isAttending ? 'block' : 'none';
+      document.querySelectorAll('.itinerary-rehearsal-only').forEach(el => {
+        el.style.display = answers.rehearsalInvite ? 'flex' : 'none';
+      });
     } else {
       stepLabelEl.textContent = `Step ${idx+1} of 7`;
       partyBannerEl.style.display = (key===0 || !partyBannerEl.dataset.ready) ? 'none' : 'block';
