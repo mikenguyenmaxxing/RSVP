@@ -660,7 +660,7 @@
 
   /**
    * Dietary needs its own renderer (not the shared attendance/drinks one)
-   * since each person's "Yes, I have food sensitivities" answer reveals a REQUIRED detail
+   * since each person's "Sensitive tummy" answer reveals a REQUIRED detail
    * field for that specific person only.
    */
   function renderDietaryToggles(containerId, names, answerMap, detailMap, onAnyChange){
@@ -690,7 +690,7 @@
       });
       detailWrap.appendChild(detailInput);
 
-      ['No concerns here', 'Yes, I have food sensitivities'].forEach(value => {
+      ['My body is ready for anything', 'Sensitive tummy'].forEach(value => {
         const btn = document.createElement('button');
         btn.className = 'opt';
         btn.type = 'button';
@@ -699,7 +699,8 @@
           optsEl.querySelectorAll('.opt').forEach(b => b.classList.remove('selected'));
           btn.classList.add('selected');
           answerMap[personName] = value;
-          if (value === 'Yes, I have food sensitivities.display = 'block';
+          if (value === 'Sensitive tummy') {
+            detailWrap.style.display = 'block';
           } else {
             detailWrap.style.display = 'none';
             detailInput.value = '';
@@ -719,7 +720,7 @@
   function dietaryComplete(names, answerMap, detailMap){
     return names.every(n => {
       if (!answerMap[n]) return false;
-      if (answerMap[n] === 'Yes, I have food sensitivities' && !detailMap[n]) return false;
+      if (answerMap[n] === 'Sensitive tummy' && !detailMap[n]) return false;
       return true;
     });
   }
