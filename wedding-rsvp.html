@@ -263,6 +263,20 @@
       </div>
     </div>
 
+    <!-- STEP shuttle: Shuttle service -->
+    <div class="step" data-step="shuttle">
+      <h1>Are you planning on using our shuttle service?</h1>
+      <p class="sub">We have a shuttle service running on the wedding day from 2PM–5PM and 11:30PM–2:30AM.</p>
+      <div class="options" id="opts-shuttle">
+        <button class="opt" data-value="Yes">Yes</button>
+        <button class="opt" data-value="No, I am driving myself">No, I am driving myself</button>
+      </div>
+      <div class="nav">
+        <button class="btn-back" id="back-shuttle">Back</button>
+        <button class="btn-next" id="next-shuttle" disabled>Continue</button>
+      </div>
+    </div>
+
     <!-- STEP 4: Hotel -->
     <div class="step" data-step="4">
       <h1>Are you staying at the Landmark Resort?</h1>
@@ -392,13 +406,16 @@
   const progressEl = document.getElementById('progress');
   const stepLabelEl = document.getElementById('stepLabel');
   const partyBannerEl = document.getElementById('partyBanner');
-  for(let i=0;i<7;i++){
+  for(let i=0;i<8;i++){
     const d=document.createElement('div');
     d.className='dot';
     progressEl.appendChild(d);
   }
   const dots = Array.from(progressEl.children);
-  const dotIndexForStep = {0:0,1:1,'1b':1,2:2,3:3,'4':4,'4b':4,5:5,'5b':5,6:6,'6d':6,7:6};
+  // Dot position reflects the ORDER guests actually visit steps in, not the
+  // data-step HTML id — rehearsal (data-step 3) now comes before drinks
+  // (data-step 2), and "shuttle" is a new step before hotel (data-step 4).
+  const dotIndexForStep = {0:0, 1:1,'1b':1, 3:2, 2:3, 'shuttle':4, '4':5,'4b':5, 5:6,'5b':6, 6:7,'6d':7, 7:7};
 
   const answers = { rehearsalInvite: false, partyMembers: [], othersJoining: [] };
 
@@ -434,7 +451,7 @@
         el.style.display = answers.rehearsalInvite ? 'flex' : 'none';
       });
     } else {
-      stepLabelEl.textContent = `Step ${idx+1} of 7`;
+      stepLabelEl.textContent = `Step ${idx+1} of 8`;
       partyBannerEl.style.display = (key===0 || !partyBannerEl.dataset.ready) ? 'none' : 'block';
     }
   }
@@ -582,31 +599,41 @@
       setupOthersStep();
       showStep('1b');
     } else {
-      showStep(2);
+      showStep(answers.rehearsalInvite ? 3 : 2);
     }
   });
 
   // Step 1b — which other party members are also joining (multi-select, optional)
   document.getElementById('back1b').addEventListener('click', ()=>showStep(1));
-  document.getElementById('next1b').addEventListener('click', ()=>showStep(2));
+  document.getElementById('next1b').addEventListener('click', ()=>{
+    showStep(answers.rehearsalInvite ? 3 : 2);
+  });
 
-  // Step 2 — drinks
-  selectable('opts-drinks', 'drinks', 'next2');
-  document.getElementById('back2').addEventListener('click', ()=>{
+  // Step 3 — rehearsal (conditional entry, only reachable if invited).
+  // Now asked BEFORE drinks, so those invited confirm rehearsal first.
+  selectable('opts-rehearsal', 'rehearsal', 'next3');
+  document.getElementById('back3').addEventListener('click', ()=>{
     showStep(othersInParty().length > 0 ? '1b' : 1);
   });
-  document.getElementById('next2').addEventListener('click', ()=>{
-    showStep(answers.rehearsalInvite ? 3 : 4);
-  });
+  document.getElementById('next3').addEventListener('click', ()=>showStep(2));
 
-  // Step 3 — rehearsal (conditional entry, only reachable if invited)
-  selectable('opts-rehearsal', 'rehearsal', 'next3');
-  document.getElementById('back3').addEventListener('click', ()=>showStep(2));
-  document.getElementById('next3').addEventListener('click', ()=>showStep(4));
+  // Step 2 — drinks. Always the step right before "shuttle" now, regardless
+  // of whether rehearsal applied (rehearsal already happened above if so).
+  selectable('opts-drinks', 'drinks', 'next2');
+  document.getElementById('back2').addEventListener('click', ()=>{
+    if (answers.rehearsalInvite) { showStep(3); return; }
+    showStep(othersInParty().length > 0 ? '1b' : 1);
+  });
+  document.getElementById('next2').addEventListener('click', ()=>showStep('shuttle'));
+
+  // Step shuttle
+  selectable('opts-shuttle', 'shuttle', 'next-shuttle');
+  document.getElementById('back-shuttle').addEventListener('click', ()=>showStep(2));
+  document.getElementById('next-shuttle').addEventListener('click', ()=>showStep(4));
 
   // Step 4 — hotel
   selectable('opts-hotel', 'hotel', 'next4');
-  document.getElementById('back4').addEventListener('click', ()=>showStep(answers.rehearsalInvite ? 3 : 2));
+  document.getElementById('back4').addEventListener('click', ()=>showStep('shuttle'));
   document.getElementById('next4').addEventListener('click', ()=>{
     showStep(answers.hotel === 'Staying at a rental/other hotel' ? '4b' : 5);
   });
