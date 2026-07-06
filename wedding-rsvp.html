@@ -229,7 +229,8 @@
 
     <!-- STEP 1: Attendance -->
     <div class="step" data-step="1">
-      <h1>And they lived happily ever after (pending your RSVP) 📖 Will you be attending our wedding?</h1>
+      <h1>And they lived happily ever after (pending your RSVP) 📖</h1>
+      <p class="sub">Will you be attending our wedding?</p>
       <div class="options" id="opts-attend">
         <button class="opt" data-value="Wouldn't miss it!">Wouldn't miss it!!!</button>
         <button class="opt" data-value="I'll be there in spirit">Be there in spirit</button>
@@ -269,8 +270,8 @@
     <div class="step" data-step="3">
       <h1>Will you be attending our rehearsal dinner on Friday, September 11th at 6:00pm at Ember?</h1>
       <div class="options" id="opts-rehearsal">
-        <button class="opt" data-value="Yes">Attending</button>
-        <button class="opt" data-value="Have other dinner plans!">Can't Make It</button>
+        <button class="opt" data-value="Yes">Wouldn't miss it!!!</button>
+        <button class="opt" data-value="Have other dinner plans!">Be there in spirit</button>
       </div>
       <div class="nav">
         <button class="btn-back" id="back3">Back</button>
@@ -333,7 +334,7 @@
     <!-- STEP 6: Story + submit -->
     <div class="step" data-step="6">
       <h1>Thank you for being a part of our lives!</h1>
-      <p class="sub">Please share a story or some words of wisdom!!!</p>
+      <p class="sub">Please share a story or some words of wisdom!!!🤍</p>
       <div class="field">
         <textarea id="story" rows="4" placeholder="Write a little something..."></textarea>
       </div>
@@ -347,6 +348,10 @@
     <div class="step" data-step="6d">
       <h1>Thanks for letting us know</h1>
       <p class="sub">We will miss you there, but we understand!</p>
+      <div class="field">
+        <label for="declineNote">A note for the couple (optional)</label>
+        <textarea id="declineNote" rows="3" placeholder="Anything you'd like to share..."></textarea>
+      </div>
       <div class="nav">
         <button class="btn-back" id="back6d">Back</button>
         <button class="btn-next" id="submitDeclineBtn">Submit RSVP</button>
@@ -778,9 +783,10 @@
     submitRSVP(this);
   });
 
-  // Step 6d — decline path, quick submit
+  // Step 6d — decline path, quick submit (with an optional note)
   document.getElementById('back6d').addEventListener('click', ()=>showStep(1));
   document.getElementById('submitDeclineBtn').addEventListener('click', function(){
+    answers.story = document.getElementById('declineNote').value.trim();
     submitRSVP(this);
   });
 
