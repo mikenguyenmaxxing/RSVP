@@ -690,7 +690,7 @@
       });
       detailWrap.appendChild(detailInput);
 
-      ['My body is ready for anything', 'Sensitive tummy'].forEach(value => {
+      ['No concerns', 'Yes I have dietary concerns'].forEach(value => {
         const btn = document.createElement('button');
         btn.className = 'opt';
         btn.type = 'button';
@@ -699,7 +699,7 @@
           optsEl.querySelectorAll('.opt').forEach(b => b.classList.remove('selected'));
           btn.classList.add('selected');
           answerMap[personName] = value;
-          if (value === 'Sensitive tummy') {
+          if (value === 'Yes I have dietary concerns') {
             detailWrap.style.display = 'block';
           } else {
             detailWrap.style.display = 'none';
@@ -720,7 +720,7 @@
   function dietaryComplete(names, answerMap, detailMap){
     return names.every(n => {
       if (!answerMap[n]) return false;
-      if (answerMap[n] === 'Sensitive tummy' && !detailMap[n]) return false;
+      if (answerMap[n] === 'Yes I have dietary concerns' && !detailMap[n]) return false;
       return true;
     });
   }
