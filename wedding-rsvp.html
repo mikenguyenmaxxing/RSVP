@@ -660,15 +660,21 @@
 
   /**
    * Dietary needs its own renderer (not the shared attendance/drinks one)
-   * since each person's "Sensitive tummy" answer reveals a REQUIRED detail
-   * field for that specific person only.
+   * since each person's "Yes I have dietary concerns" answer reveals a
+   * REQUIRED detail field for that specific person only.
+   *
+   * Answers are read directly from the DOM at Continue-time (see
+   * collectDietaryAnswers) rather than tracked incrementally through
+   * event listeners updating a shared object — this avoids any class of
+   * bug where an update could be missed or overwritten along the way.
    */
-  function renderDietaryToggles(containerId, names, answerMap, detailMap, onAnyChange){
+  function renderDietaryToggles(containerId, names){
     const container = document.getElementById(containerId);
     container.innerHTML = '';
     names.forEach(personName => {
       const block = document.createElement('div');
       block.className = 'person-block';
+      block.dataset.personName = personName;
 
       const nameEl = document.createElement('p');
       nameEl.className = 'person-name';
@@ -684,10 +690,8 @@
       const detailInput = document.createElement('input');
       detailInput.type = 'text';
       detailInput.placeholder = 'Tell us more';
-      detailInput.addEventListener('input', () => {
-        detailMap[personName] = detailInput.value.trim();
-        if (onAnyChange) onAnyChange();
-      });
+      detailInput.className = 'dietary-detail-input';
+      detailInput.addEventListener('input', updateDietaryNextButton);
       detailWrap.appendChild(detailInput);
 
       ['No concerns', 'Yes I have dietary concerns'].forEach(value => {
@@ -695,18 +699,12 @@
         btn.className = 'opt';
         btn.type = 'button';
         btn.textContent = value;
+        btn.dataset.value = value;
         btn.addEventListener('click', () => {
           optsEl.querySelectorAll('.opt').forEach(b => b.classList.remove('selected'));
           btn.classList.add('selected');
-          answerMap[personName] = value;
-          if (value === 'Yes I have dietary concerns') {
-            detailWrap.style.display = 'block';
-          } else {
-            detailWrap.style.display = 'none';
-            detailInput.value = '';
-            delete detailMap[personName];
-          }
-          if (onAnyChange) onAnyChange();
+          detailWrap.style.display = (value === 'Yes I have dietary concerns') ? 'block' : 'none';
+          updateDietaryNextButton();
         });
         optsEl.appendChild(btn);
       });
@@ -717,12 +715,36 @@
     });
   }
 
-  function dietaryComplete(names, answerMap, detailMap){
-    return names.every(n => {
-      if (!answerMap[n]) return false;
-      if (answerMap[n] === 'Yes I have dietary concerns' && !detailMap[n]) return false;
+  function dietaryBlocksComplete(){
+    const blocks = document.querySelectorAll('#dietary-list .person-block');
+    if (blocks.length === 0) return false; // never enable Continue on an empty/unrendered list
+    return Array.from(blocks).every(block => {
+      const selected = block.querySelector('.opt.selected');
+      if (!selected) return false;
+      if (selected.dataset.value === 'Yes I have dietary concerns') {
+        const input = block.querySelector('.dietary-detail-input');
+        return !!(input && input.value.trim());
+      }
       return true;
     });
+  }
+
+  function updateDietaryNextButton(){
+    document.getElementById('next5').disabled = !dietaryBlocksComplete();
+  }
+
+  /** Reads each person's dietary answer straight from the rendered DOM. */
+  function collectDietaryAnswers(){
+    const attendance = {};
+    const details = {};
+    document.querySelectorAll('#dietary-list .person-block').forEach(block => {
+      const personName = block.dataset.personName;
+      const selected = block.querySelector('.opt.selected');
+      if (selected) attendance[personName] = selected.dataset.value;
+      const input = block.querySelector('.dietary-detail-input');
+      if (input && input.value.trim()) details[personName] = input.value.trim();
+    });
+    return { attendance, details };
   }
 
   /** Everyone actually attending: the submitter, plus anyone confirmed via the others-joining step. */
@@ -734,18 +756,20 @@
 
   // Step 5 — dietary, one box per person actually attending
   function setupDietaryStep(){
-    answers.dietaryAttendance = {};
-    answers.dietaryDetails = {};
     const names = attendingPartyMembers();
-    renderDietaryToggles('dietary-list', names, answers.dietaryAttendance, answers.dietaryDetails, () => {
-      document.getElementById('next5').disabled = !dietaryComplete(names, answers.dietaryAttendance, answers.dietaryDetails);
-    });
+    renderDietaryToggles('dietary-list', names);
+    document.getElementById('next5').disabled = true;
   }
 
   document.getElementById('back5').addEventListener('click', ()=>{
     showStep(needsAddress() ? '4b' : 4);
   });
-  document.getElementById('next5').addEventListener('click', ()=>showStep(6));
+  document.getElementById('next5').addEventListener('click', ()=>{
+    const collected = collectDietaryAnswers();
+    answers.dietaryAttendance = collected.attendance;
+    answers.dietaryDetails = collected.details;
+    showStep(6);
+  });
 
   // Step 6 — story + submit
   document.getElementById('back6').addEventListener('click', ()=>showStep(5));
