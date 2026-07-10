@@ -106,6 +106,30 @@
   .opt:hover{border-color:var(--accent);background:rgba(124,63,83,.05);}
   .opt.selected{background:var(--accent);border-color:var(--accent);color:#fff;}
 
+  .checkbox-row{
+    display:flex;align-items:center;gap:14px;
+    padding:14px 18px;margin-bottom:10px;
+    border-radius:9px;border:1.5px solid var(--border);
+    background:transparent;cursor:pointer;transition:all .15s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .checkbox-row:last-child{margin-bottom:0;}
+  .checkbox-row:hover{border-color:var(--accent);background:rgba(108,32,60,.05);}
+  .checkbox-row.selected{border-color:var(--accent);background:rgba(108,32,60,.05);}
+  .checkbox-box{
+    flex-shrink:0;width:24px;height:24px;border-radius:6px;
+    border:2px solid var(--border);position:relative;
+    transition:all .15s ease;
+  }
+  .checkbox-row.selected .checkbox-box{background:var(--accent);border-color:var(--accent);}
+  .checkbox-row.selected .checkbox-box::after{
+    content:'';position:absolute;left:7px;top:3px;width:6px;height:11px;
+    border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg);
+  }
+  .checkbox-label{
+    font-family:'Karla',sans-serif;font-size:15px;font-weight:600;color:var(--ink);
+  }
+
   .person-block{
     padding:16px;
     margin-bottom:12px;
@@ -243,9 +267,9 @@
 
     <!-- STEP 1b: Others in party (only shown if attending + other party members exist) -->
     <div class="step" data-step="1b">
-      <h1 id="othersQuestion">Will they also be joining?</h1>
-      <p class="sub">Select anyone else from your party who will also be attending — leave anyone who is unable to attend unselected.</p>
-      <div class="options" id="opts-others"></div>
+      <h1 id="othersQuestion">Who else from your party is joining?</h1>
+      <p class="sub">Check the box next to each person who will also be attending. Leave unchecked anyone who won't be able to make it.</p>
+      <div id="opts-others"></div>
       <div class="nav">
         <button class="btn-back" id="back1b">Back</button>
         <button class="btn-next" id="next1b">Continue</button>
@@ -575,22 +599,40 @@
 
   function setupOthersStep(){
     const others = othersInParty();
-    document.getElementById('othersQuestion').textContent = `Will ${formatNameList(others)} also be joining?`;
     const container = document.getElementById('opts-others');
     container.innerHTML = '';
     answers.othersJoining = [];
     others.forEach(personName => {
-      const btn = document.createElement('button');
-      btn.className = 'opt';
-      btn.type = 'button';
-      btn.textContent = personName;
-      btn.addEventListener('click', () => {
-        btn.classList.toggle('selected');
+      const row = document.createElement('div');
+      row.className = 'checkbox-row';
+      row.setAttribute('role', 'checkbox');
+      row.setAttribute('aria-checked', 'false');
+      row.tabIndex = 0;
+
+      const box = document.createElement('span');
+      box.className = 'checkbox-box';
+
+      const label = document.createElement('span');
+      label.className = 'checkbox-label';
+      label.textContent = personName;
+
+      row.appendChild(box);
+      row.appendChild(label);
+
+      const toggle = () => {
+        row.classList.toggle('selected');
+        const nowSelected = row.classList.contains('selected');
+        row.setAttribute('aria-checked', String(nowSelected));
         const idx = answers.othersJoining.indexOf(personName);
-        if (btn.classList.contains('selected') && idx === -1) answers.othersJoining.push(personName);
-        if (!btn.classList.contains('selected') && idx !== -1) answers.othersJoining.splice(idx, 1);
+        if (nowSelected && idx === -1) answers.othersJoining.push(personName);
+        if (!nowSelected && idx !== -1) answers.othersJoining.splice(idx, 1);
+      };
+      row.addEventListener('click', toggle);
+      row.addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
       });
-      container.appendChild(btn);
+
+      container.appendChild(row);
     });
   }
 
